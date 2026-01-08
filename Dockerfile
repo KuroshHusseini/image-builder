@@ -1,7 +1,9 @@
 FROM docker:25-git
 
+WORKDIR /app
 
-COPY . .
-RUN chmod +x ./builder.sh
+COPY builder.sh .
 
-ENTRYPOINT [ "./builder.sh" ]
+RUN chmod +x builder.sh
+
+ENTRYPOINT ["./builder.sh"]

@@ -14,6 +14,9 @@ DOCKERHUB_REPO="$2"
 # Extract project name from GitHub repo
 PROJECT_NAME="${GITHUB_REPO##*/}"
 
+cleanup() { rm -rf "$PROJECT_NAME" 2>/dev/null || true; }
+trap cleanup EXIT
+
 # Construct GitHub URL
 GITHUB_URL="https://github.com/${GITHUB_REPO}.git"
 
@@ -25,21 +28,17 @@ echo ""
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
-    echo "Error: Docker daemon is not running."
+    echo "Error: Docker daemon not reachable. Did you mount /var/run/docker.sock?"
     exit 1
 fi
 
 # Login to Docker Hub if credentials are provided
-if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PWD" ]; then
-    echo "Step 1: Logging in to Docker Hub..."
-    echo "$DOCKER_PWD" | docker login -u "$DOCKER_USER" --password-stdin
-    if [ $? -ne 0 ]; then
-        echo "Failed to login to Docker Hub."
-        exit 1
-    fi
-else
-    echo "Warning: DOCKER_USER and DOCKER_PWD not set. Make sure you're logged in with 'docker login'."
+if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PWD:-}" ]; then
+    echo "Error: DOCKER_USER and DOCKER_PWD must be set."
+    exit 1
 fi
+
+echo "$DOCKER_PWD" | docker login -u "$DOCKER_USER" --password-stdin
 
 # Clone the repository
 echo "Step 2: Cloning repository..."
