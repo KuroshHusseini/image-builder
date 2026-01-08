@@ -25,12 +25,24 @@ echo ""
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
-    echo "Error: Docker daemon is not running. Please start Docker first."
+    echo "Error: Docker daemon is not running."
     exit 1
 fi
 
+# Login to Docker Hub if credentials are provided
+if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PWD" ]; then
+    echo "Step 1: Logging in to Docker Hub..."
+    echo "$DOCKER_PWD" | docker login -u "$DOCKER_USER" --password-stdin
+    if [ $? -ne 0 ]; then
+        echo "Failed to login to Docker Hub."
+        exit 1
+    fi
+else
+    echo "Warning: DOCKER_USER and DOCKER_PWD not set. Make sure you're logged in with 'docker login'."
+fi
+
 # Clone the repository
-echo "Step 1: Cloning repository..."
+echo "Step 2: Cloning repository..."
 if [ -d "$PROJECT_NAME" ]; then
     echo "Directory '$PROJECT_NAME' already exists. Removing it..."
     rm -rf "$PROJECT_NAME"
@@ -56,7 +68,7 @@ fi
 
 # Build Docker image
 echo ""
-echo "Step 2: Building Docker image..."
+echo "Step 3: Building Docker image..."
 if docker build -t "$DOCKERHUB_REPO" .; then
     echo "Docker image built successfully."
 else
@@ -68,12 +80,11 @@ fi
 
 # Push to Docker Hub
 echo ""
-echo "Step 3: Pushing image to Docker Hub..."
+echo "Step 4: Pushing image to Docker Hub..."
 if docker push "$DOCKERHUB_REPO"; then
     echo "Image pushed successfully to Docker Hub!"
 else
     echo "Failed to push image to Docker Hub."
-    echo "Make sure you are logged in with: docker login"
     cd ..
     rm -rf "$PROJECT_NAME"
     exit 1
@@ -81,7 +92,7 @@ fi
 
 # Clean up
 echo ""
-echo "Step 4: Cleaning up..."
+echo "Step 5: Cleaning up..."
 cd ..
 rm -rf "$PROJECT_NAME"
 echo "Cleaned up temporary files."
